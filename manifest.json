@@ -2,6 +2,7 @@
   "short_name": "Stereo",
   "id": "stereo-viewer",
   "name": "Stereo Viewer",
+  "description": "View stereo 3D pictures on desktop and mobile, with VR support",
   "icons": [
     {
       "src": "icon.svg",
