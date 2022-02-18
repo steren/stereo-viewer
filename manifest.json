@@ -13,11 +13,6 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
-    },
-    {
-      "src": "icon.webp",
-      "sizes": "512x512",
-      "type": "image/webp"
     }
   ],
   "start_url": "/",
