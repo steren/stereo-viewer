@@ -27,9 +27,34 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "sizes": "1080×2340",
+      "src": "/screenshots/screenshot-empty.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "1080×2340",
+      "src": "/screenshots/screenshot-demo.png",
+      "type": "image/png"
+    }
+  ],
   "start_url": "/",
   "display": "standalone",
   "scope": "/",
   "theme_color": "#00ff8f",
-  "background_color": "#000000"
+  "background_color": "#000000",
+  "share_target": {
+    "action": "/",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
 }
