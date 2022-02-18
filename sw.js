@@ -1,10 +1,11 @@
-const cacheVersion = 'v2';
+const cacheVersion = 'v3';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
-var urlsToCache = [
+const urlsToCache = [
   "/",
 ];
 
+// On install, cache critical offline resources.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(cacheName)
@@ -15,15 +16,28 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// On activate, delete old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(function (cacheNames) {
+      return Promise.all(
+        cacheNames
+          .filter((name) => {
+            return name != cacheName;
+          })
+          .map((name) => {
+            return caches.delete(name);
+          })
+      );
+    }),
+  );
+});
+
+// On fetch, return cached resources if present, otherwise fetch from network
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    }),
   );
 });
