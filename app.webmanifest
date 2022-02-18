@@ -29,12 +29,12 @@
   ],
   "screenshots": [
     {
-      "sizes": "1080×2340",
+      "sizes": "1080x2340",
       "src": "/screenshots/screenshot-empty.png",
       "type": "image/png"
     },
     {
-      "sizes": "1080×2340",
+      "sizes": "1080x2340",
       "src": "/screenshots/screenshot-demo.png",
       "type": "image/png"
     }
