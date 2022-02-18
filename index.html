@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stereo 3D image viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:creator" content="@steren">
+  <meta name="twitter:title" content="Stereo 3D image viewer">
+  <meta name="twitter:image" content="https://stereo-viewer.app/title.png">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Stereo 3D image viewer">
+  <meta property="og:image" content="https://stereo-viewer.app/title.png">
+
+  <meta name="color-scheme" content="dark">
+
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "author": "Steren Giannini",
+    "name": "Stereo 3D image viewer",
+    "image": "https://stereo-viewer.app/title.png"
+  }
+  </script>
+
+  <!-- Polyfill for WebXR -->
+  <script src='https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js'></script>
+  <script>
+    window.polyfill = new WebXRPolyfill();
+  </script>
+
+  <!-- Load <stereo-img> Web component from CDN-->
+  <script type="module" src="https://cdn.skypack.dev/stereo-img"></script>
+
+  <style>
+    html {
+      margin: auto;
+      line-height: 1.75;
+      font-size: 1.25em;
+      font-family: sans-serif;
+      background-color: #000;
+      color: #fff;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    stereo-img {
+      width: 100%;
+      height: 100%;
+    }
+
+    #input, #hint {
+      position: absolute;
+      margin-left: auto;
+      margin-right: auto;
+      left: 0;
+      right: 0;
+      text-align: center;
+    }
+
+    #input {
+      top: 0;
+      z-index: 2;
+    }
+
+    #hint {
+      top: 50%;
+    }
+
+  </style>
+
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body id='dropbox'>
+  <main>
+    <p id="hint">Drag and drop or select a stereo picture</p>
+    <input id="input" type="file" accept="image/*">
+
+    <stereo-img src="vr180-lenovo-mirage.vr.jpg"></stereo-img>
+
+    <!-- TODO: Add radio button for type -->
+
+    <!-- TODO: handle navigation in a list of files -->
+    <!-- <button id="previous">Previous</button> <button id="next">Next</button> -->
+  </main>
+
+  <script>
+    function hideHint() {
+      document.getElementById('hint').style.display = 'none';
+    }
+
+    // Add selected files to dropdown
+    function handleFiles(files) {
+      for (let i = 0; i < files.length; i++) {
+        let file = files[i];
+        
+        if (!file.type.startsWith('image/')){ continue }
+        
+        let reader = new FileReader();
+        reader.onload = e => { processFile(e.target.result, file.name); };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function processFile(url, name) {
+      const stereoImg = document.querySelector('stereo-img');
+      stereoImg.src = url;
+
+      hideHint();
+    }
+
+    document.getElementById("input").addEventListener("change", (e) => {
+      handleFiles(e.target.files);
+    }, false);
+
+    // Drag and drop
+    const dropzone = document.getElementById("dropbox");
+    dropzone.ondragover = dropzone.ondragenter = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    dropzone.ondrop = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handleFiles(e.dataTransfer.files);
+    }
+  </script>
+
+</body>
+
+</html>

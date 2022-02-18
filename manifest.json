@@ -1,0 +1,17 @@
+{
+  "short_name": "Stereo",
+  "name": "Stereo Viewer",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "36x36 48x48 72x72 96x96 144x144 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#00ff8f",
+  "background_color": "#000000"
+}
