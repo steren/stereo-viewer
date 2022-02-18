@@ -5,9 +5,19 @@
   "icons": [
     {
       "src": "icon.svg",
-      "sizes": "36x36 48x48 72x72 96x96 144x144 192x192 512x512",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
     }
   ],
   "start_url": "/",
