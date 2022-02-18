@@ -1,5 +1,6 @@
 {
   "short_name": "Stereo",
+  "id": "stereo-viewer",
   "name": "Stereo Viewer",
   "icons": [
     {
