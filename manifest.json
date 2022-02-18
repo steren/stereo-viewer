@@ -5,14 +5,25 @@
   "description": "View stereo 3D pictures on desktop and mobile, with VR support",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
     {
-      "src": "icon-maskable.svg",
+      "src": "icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
