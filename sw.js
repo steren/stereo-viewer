@@ -1,4 +1,4 @@
-const cacheVersion = 'v1';
+const cacheVersion = 'v2';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 var urlsToCache = [
