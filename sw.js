@@ -41,15 +41,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       const formData = await event.request.formData();
       const files = formData.getAll('files');
-      console.log('Received files from SharePoint:', files);
+      console.log('Received files from Share action:', files);
       // TODO: Send the files to the app.
       return Response.redirect('/', 303);
     })());
+  } else {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
+      }),
+    );
   }
-
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    }),
-  );
 });
