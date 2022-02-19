@@ -1,4 +1,4 @@
-const cacheVersion = 'v6';
+const cacheVersion = 'v7';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 const urlsToCache = [
@@ -37,7 +37,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // On fetch, return cached resources if present, otherwise fetch from network
-// If POST is received, 
+// Share actions send a POST requests, intercept it and redirect to / 
 self.addEventListener('fetch', (event) => {
 
   if (event.request.method === 'POST') {
