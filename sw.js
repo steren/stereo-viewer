@@ -1,4 +1,4 @@
-const cacheVersion = 'v4';
+const cacheVersion = 'v5';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 const urlsToCache = [
@@ -34,7 +34,19 @@ self.addEventListener('activate', (event) => {
 });
 
 // On fetch, return cached resources if present, otherwise fetch from network
+// If POST is received, 
 self.addEventListener('fetch', (event) => {
+
+  if (event.request.method === 'POST') {
+    event.respondWith((async () => {
+      const formData = await event.request.formData();
+      const files = formData.getAll('files');
+      console.log('Received files from SharePoint:', files);
+      // TODO: Send the files to the app.
+      return Response.redirect('/', 303);
+    })());
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
