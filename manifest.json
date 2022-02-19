@@ -15,12 +15,6 @@
       "type": "image/png"
     },
     {
-      "src": "icons/icon-maskable.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    },
-    {
       "src": "icons/icon-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
