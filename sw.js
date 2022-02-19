@@ -1,5 +1,7 @@
-const cacheVersion = 'v7';
+const cacheVersion = 'v11';
 const cacheName = 'stereo-viewer-' + cacheVersion;
+
+const cdnPrefix = 'https://cdn.jsdelivr.net/';
 
 const urlsToCache = [
   "/",
@@ -36,11 +38,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// On fetch, return cached resources if present, otherwise fetch from network
-// Share actions send a POST requests, intercept it and redirect to / 
-self.addEventListener('fetch', (event) => {
 
+self.addEventListener('fetch', (event) => {
   if (event.request.method === 'POST') {
+    // Share actions send a POST requests, intercept it and redirect to / 
     event.respondWith((async () => {
       const formData = await event.request.formData();
       const files = formData.getAll('files');
@@ -49,10 +50,22 @@ self.addEventListener('fetch', (event) => {
       return Response.redirect('/', 303);
     })());
   } else {
+    // Look for the request in the cache
+    // If the request is in the cache, return it
+    // Otherwise, fetch from the network and if .js file from CDN, store in cache
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
-      }),
-    );
+      caches.open(cacheName).then((cache) => {
+        return cache.match(event.request).then((response) => {
+          return response || fetch(event.request).then((response) => {
+            console.log(`Fetching from network: ${event.request.url}`);
+            if (event.request.url.endsWith('.js') && event.request.url.startsWith(cdnPrefix)) { 
+              console.log(`Caching ${event.request.url}`);
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          });
+        });
+      })
+    )
   }
 });
