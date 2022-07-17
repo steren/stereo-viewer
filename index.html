@@ -138,14 +138,16 @@
 
     //File Handling API, see https://web.dev/file-handling/
     if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
-      launchQueue.setConsumer((launchParams) => {
-        console.log("File Handling API:", launchParams);
+      launchQueue.setConsumer(async (launchParams) => {
         // Nothing to do when the queue is empty.
         if (!launchParams.files.length) {
           return;
         }
         console.log("File(s) to Handle (File Handling API)");
-        handleFiles(launchParams.files);
+
+        // Resolve FileSystemFileHandle array to File array
+        const files = await Promise.all(launchParams.files.map( (fileHandle) => {return fileHandle.getFile();} ));
+        handleFiles(files);
       });
     }
   </script>
