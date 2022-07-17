@@ -46,9 +46,23 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*"]
+          "accept": ["image/jpeg"]
         }
       ]
     }
-  }
+  },
+  "file_handlers": [{
+    "action": "/",
+    "accept": {
+      "image/jpeg": ".jpg"
+    },
+    "icons": [
+      {
+        "src": "icons/icon.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "launch_type": "single-client"
+  }]
 }

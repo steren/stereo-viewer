@@ -132,6 +132,17 @@
       e.preventDefault();
       handleFiles(e.dataTransfer.files);
     }
+
+    //File Handling API, see https://web.dev/file-handling/
+    if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
+      launchQueue.setConsumer((launchParams) => {
+        // Nothing to do when the queue is empty.
+        if (!launchParams.files.length) {
+          return;
+        }
+        handleFiles(files);
+      });
+    }
   </script>
 
   <script>
