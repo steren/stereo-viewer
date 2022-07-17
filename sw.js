@@ -1,4 +1,4 @@
-const cacheVersion = 'v13';
+const cacheVersion = 'v14';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 const cdnPrefix = 'https://cdn.skypack.dev/';
