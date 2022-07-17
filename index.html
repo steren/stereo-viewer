@@ -146,10 +146,14 @@
         handleFiles(files);
       });
     }
-  </script>
 
-  <script>
+
     navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.addEventListener('message', event => {
+      if(event.files) {
+        handleFiles(event.files);
+      }
+    });
   </script>
 
 </body>

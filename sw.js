@@ -46,7 +46,18 @@ self.addEventListener('fetch', (event) => {
       const formData = await event.request.formData();
       const files = formData.getAll('files');
       console.log('Received files from Share action:', files);
+
       // TODO: Send the files to the app.
+      if (event.clientId) {
+        console.log('Sending files to client:', event.clientId);
+        const client = await clients.get(event.clientId);
+        client.postMessage({
+          files: files
+        });
+      } else {
+        console.error('No clientId found in event');
+      }
+      
       return Response.redirect('/', 303);
     })());
   } else {
