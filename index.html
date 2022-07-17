@@ -99,6 +99,7 @@
 
     // Add selected files to dropdown
     function handleFiles(files) {
+      console.log("Handling files:", files);
       for (let i = 0; i < files.length; i++) {
         let file = files[i];
         
@@ -111,6 +112,7 @@
     }
 
     function processFile(url, name) {
+      console.log("Processing file:", name);
       const stereoImg = document.querySelector('stereo-img');
       stereoImg.src = url;
 
@@ -130,6 +132,7 @@
     dropzone.ondrop = (e) => {
       e.stopPropagation();
       e.preventDefault();
+      console.log("Files dropped");
       handleFiles(e.dataTransfer.files);
     }
 
@@ -140,6 +143,7 @@
         if (!launchParams.files.length) {
           return;
         }
+        console.log("File(s) to Handle (File Handling API)");
         handleFiles(files);
       });
     }
