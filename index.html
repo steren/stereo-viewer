@@ -139,6 +139,7 @@
     //File Handling API, see https://web.dev/file-handling/
     if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
       launchQueue.setConsumer((launchParams) => {
+        console.log("File Handling API:", launchParams);
         // Nothing to do when the queue is empty.
         if (!launchParams.files.length) {
           return;
