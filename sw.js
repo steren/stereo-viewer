@@ -1,4 +1,4 @@
-const cacheVersion = 'v19';
+const cacheVersion = 'v21';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 const cdnPrefix = 'https://cdn.skypack.dev/';
@@ -39,7 +39,7 @@ self.addEventListener('activate', (event) => {
 });
 
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', async (event) => {
   if (event.request.method === 'POST') {
     // Share actions send a POST requests, intercept it and redirect to / 
     event.respondWith((async () => {
@@ -47,15 +47,17 @@ self.addEventListener('fetch', (event) => {
       const files = formData.getAll('files');
       console.log('Received files from Share action:', files);
 
-      // TODO: Send the files to the app.
-      if (event.clientId) {
-        console.log('Sending files to client:', event.clientId);
-        const client = await clients.get(event.clientId);
-        client.postMessage({
-          files: files
-        });
+      const allWindowsClients = await clients.matchAll();
+
+      if(allWindowsClients.length > 0) {
+        console.log("Found clients to send files");
+        for (const client of allWindowsClients) {
+          client.postMessage({
+            files: files
+          });
+        }
       } else {
-        console.error('No clientId found in event');
+        console.error('No clients found to send files to');
       }
       
       return Response.redirect('/', 303);
