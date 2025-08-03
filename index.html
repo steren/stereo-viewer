@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>Stereo 3D image viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A web-based viewer for stereo 3D images and VR180 photos.">
 
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
@@ -107,6 +108,10 @@
       height: 100vh;
     }
 
+    #zero-state-icon {
+      margin-bottom: 20px;
+    }
+
     #type-selector-container select {
       background-color: #333;
       color: #fff;
@@ -114,7 +119,6 @@
       padding: 5px;
       font-family: sans-serif;
     }
-
   </style>
 
   <link rel="manifest" href="manifest.json">
@@ -125,9 +129,12 @@
   <stereo-img></stereo-img>
 
   <div id="zero-state">
-    <p id="hint">Drag and drop or select a stereo picture</p>
-    <input id="file-input" type="file" accept="image/*" multiple>
-    <button id="folder-input" style="display: none;">Select Folder</button>
+    <img id="zero-state-icon" src="icons/icon-transparent.svg" alt="Stereo Viewer Icon" width="200" height="200">
+    <p id="hint">Drag and drop or <label for="file-input">select stereo pictures</label></p>
+    <input id="file-input" type="file" accept="image/*" multiple class="visually-hidden">
+    <span id="folder-selection-ui" style="display: none;">
+      or <button id="folder-input">Select Folder</button>
+    </span>
   </div>
 
   <div id="ui">
@@ -137,6 +144,7 @@
       <button id="next">&rarr;</button>
     </div>
     <div id="type-selector-container">
+      <label for="type-select">Type:</label>
       <select id="type-select">
         <option value="auto" selected>Auto</option>
         <option value="vr">VR180</option>
@@ -315,8 +323,8 @@
 
     // Folder selection
     if ('showDirectoryPicker' in window) {
+      document.getElementById('folder-selection-ui').style.display = 'inline';
       const folderInput = document.getElementById('folder-input');
-      folderInput.style.display = 'inline';
       folderInput.addEventListener('click', async () => {
         try {
           const dirHandle = await window.showDirectoryPicker();
