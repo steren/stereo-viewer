@@ -62,11 +62,22 @@
     #ui {
       visibility: hidden;
       position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ui-nav {
       display: flex;
       align-items: center;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
     #thumbnails {
@@ -96,12 +107,21 @@
       height: 100vh;
     }
 
+    #type-selector-container select {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 5px;
+      font-family: sans-serif;
+    }
+
   </style>
 
   <link rel="manifest" href="manifest.json">
 </head>
 
 <body id="dropbox">
+
   <stereo-img></stereo-img>
 
   <div id="zero-state">
@@ -111,10 +131,22 @@
   </div>
 
   <div id="ui">
-    <!-- TODO: Add radio button for type -->
-    <button id="previous">&larr;</button>
-    <div id="thumbnails"></div>
-    <button id="next">&rarr;</button>
+    <div class="ui-nav">
+      <button id="previous">&larr;</button>
+      <div id="thumbnails"></div>
+      <button id="next">&rarr;</button>
+    </div>
+    <div id="type-selector-container">
+      <select id="type-select">
+        <option value="auto" selected>Auto</option>
+        <option value="vr">VR180</option>
+        <option value="left-right">Left-Right</option>
+        <option value="right-left">Right-Left</option>
+        <option value="top-bottom">Top-Bottom</option>
+        <option value="bottom-top">Bottom-Top</option>
+        <option value="anaglyph">Anaglyph</option>
+      </select>
+    </div>
   </div>
 
   <script>
@@ -175,13 +207,16 @@
     }
 
     function updateButtonStates() {
+      const typeSelectorContainer = document.getElementById('type-selector-container');
       if (allFiles.length === 0) {
         document.getElementById('ui').style.visibility = 'hidden';
+        typeSelectorContainer.style.visibility = 'hidden';
         document.getElementById('previous').disabled = true;
         document.getElementById('next').disabled = true;
         return;
       }
       document.getElementById('ui').style.visibility = 'visible';
+      typeSelectorContainer.style.visibility = 'visible';
       document.getElementById('previous').disabled = currentIndex === 0;
       document.getElementById('next').disabled = currentIndex === allFiles.length - 1;
     }
@@ -258,6 +293,18 @@
         document.getElementById('previous').click();
       } else if (e.key === 'ArrowRight') {
         document.getElementById('next').click();
+      }
+    });
+
+    // Type selector
+    document.getElementById('type-select').addEventListener('change', (e) => {
+      const stereoImg = document.querySelector('stereo-img');
+      const selectedType = e.target.value;
+
+      if (selectedType === 'auto') {
+        stereoImg.removeAttribute('type');
+      } else {
+        stereoImg.setAttribute('type', selectedType);
       }
     });
 
