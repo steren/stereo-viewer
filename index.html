@@ -61,6 +61,31 @@
 
     #ui {
       visibility: hidden;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+    }
+
+    #thumbnails {
+      display: flex;
+      overflow-x: auto;
+      margin: 0 10px;
+      max-width: 50vw;
+    }
+
+    #thumbnails img {
+      width: 50px;
+      height: 50px;
+      margin: 0 5px;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    #thumbnails img.active {
+      border-color: #00ff8f;
     }
 
     #zero-state {
@@ -87,7 +112,9 @@
 
   <div id="ui">
     <!-- TODO: Add radio button for type -->
-    <button id="previous">Previous</button> <button id="next">Next</button>
+    <button id="previous">&larr;</button>
+    <div id="thumbnails"></div>
+    <button id="next">&rarr;</button>
   </div>
 
   <script>
@@ -111,9 +138,11 @@
       if (allFiles.length > 0) {
         currentIndex = 0;
         displayFile(allFiles[currentIndex]);
+        generateThumbnails();
       } else {
         document.querySelector('stereo-img').src = '';
         document.getElementById('zero-state').style.display = 'flex';
+        clearThumbnails();
       }
       updateButtonStates();
     }
@@ -122,6 +151,44 @@
       let reader = new FileReader();
       reader.onload = e => { processFile(e.target.result, file.name); };
       reader.readAsDataURL(file);
+    }
+
+    function generateThumbnails() {
+      const thumbnailsContainer = document.getElementById('thumbnails');
+      thumbnailsContainer.innerHTML = '';
+
+      allFiles.forEach((file, index) => {
+        const img = document.createElement('img');
+        img.addEventListener('click', () => {
+          currentIndex = index;
+          displayFile(allFiles[currentIndex]);
+          updateActiveThumbnail();
+        });
+        thumbnailsContainer.appendChild(img);
+
+        const reader = new FileReader();
+        reader.onload = e => {
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      updateActiveThumbnail();
+    }
+
+    function clearThumbnails() {
+      const thumbnailsContainer = document.getElementById('thumbnails');
+      thumbnailsContainer.innerHTML = '';
+    }
+
+    function updateActiveThumbnail() {
+      const thumbnails = document.querySelectorAll('#thumbnails img');
+      thumbnails.forEach((thumbnail, index) => {
+        if (index === currentIndex) {
+          thumbnail.classList.add('active');
+        } else {
+          thumbnail.classList.remove('active');
+        }
+      });
     }
 
     function processFile(url, name) {
@@ -153,6 +220,7 @@
         currentIndex--;
         displayFile(allFiles[currentIndex]);
         updateButtonStates();
+        updateActiveThumbnail();
       }
     });
 
@@ -161,6 +229,15 @@
         currentIndex++;
         displayFile(allFiles[currentIndex]);
         updateButtonStates();
+        updateActiveThumbnail();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        document.getElementById('previous').click();
+      } else if (e.key === 'ArrowRight') {
+        document.getElementById('next').click();
       }
     });
 
