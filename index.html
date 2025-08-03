@@ -81,7 +81,8 @@
 
   <div id="zero-state">
     <p id="hint">Drag and drop or select a stereo picture</p>
-    <input id="file-input" type="file" accept="image/*" multiple>  
+    <input id="file-input" type="file" accept="image/*" multiple>
+    <button id="folder-input" style="display: none;">Select Folder</button>
   </div>
 
   <!-- TODO: Display UI on top of viewer without blocking viewer interactions-->
@@ -163,6 +164,30 @@
         updateButtonStates();
       }
     });
+
+    if ('showDirectoryPicker' in window) {
+      const folderInput = document.getElementById('folder-input');
+      folderInput.style.display = 'inline';
+      folderInput.addEventListener('click', async () => {
+        try {
+          const dirHandle = await window.showDirectoryPicker();
+          const files = [];
+          for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file') {
+              const file = await entry.getFile();
+              if (file.type.startsWith('image/')) {
+                files.push(file);
+              }
+            }
+          }
+          handleFiles(files);
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            console.error(e);
+          }
+        }
+      });
+    }
 
     // Drag and drop
     const dropzone = document.getElementById("dropbox");
