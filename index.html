@@ -118,12 +118,17 @@
   </div>
 
   <script>
+    ////////////////////////////////////////
+    // Global Variables
+    ////////////////////////////////////////
+
     let allFiles = [];
     let currentIndex = 0;
 
-    function hideZeroState() {
-      document.getElementById('zero-state').style.display = 'none';
-    }
+
+    ////////////////////////////////////////
+    // File Handling & Processing
+    ////////////////////////////////////////
 
     function handleFiles(files) {
       console.log("Handling files:", files);
@@ -151,6 +156,34 @@
       let reader = new FileReader();
       reader.onload = e => { processFile(e.target.result, file.name); };
       reader.readAsDataURL(file);
+    }
+
+    function processFile(url, name) {
+      console.log("Processing file:", name);
+      const stereoImg = document.querySelector('stereo-img');
+      stereoImg.src = url;
+      hideZeroState();
+    }
+
+
+    ////////////////////////////////////////
+    // UI & Thumbnail Management
+    ////////////////////////////////////////
+
+    function hideZeroState() {
+      document.getElementById('zero-state').style.display = 'none';
+    }
+
+    function updateButtonStates() {
+      if (allFiles.length === 0) {
+        document.getElementById('ui').style.visibility = 'hidden';
+        document.getElementById('previous').disabled = true;
+        document.getElementById('next').disabled = true;
+        return;
+      }
+      document.getElementById('ui').style.visibility = 'visible';
+      document.getElementById('previous').disabled = currentIndex === 0;
+      document.getElementById('next').disabled = currentIndex === allFiles.length - 1;
     }
 
     function generateThumbnails() {
@@ -191,30 +224,16 @@
       });
     }
 
-    function processFile(url, name) {
-      console.log("Processing file:", name);
-      const stereoImg = document.querySelector('stereo-img');
-      stereoImg.src = url;
+    ////////////////////////////////////////
+    // Event Listeners
+    ////////////////////////////////////////
 
-      hideZeroState();
-    }
-
-    function updateButtonStates() {
-      if (allFiles.length === 0) {
-        document.getElementById('ui').style.visibility = 'hidden';
-        document.getElementById('previous').disabled = true;
-        document.getElementById('next').disabled = true;
-        return;
-      }
-      document.getElementById('ui').style.visibility = 'visible';
-      document.getElementById('previous').disabled = currentIndex === 0;
-      document.getElementById('next').disabled = currentIndex === allFiles.length - 1;
-    }
-
+    // File input
     document.getElementById("file-input").addEventListener("change", (e) => {
       handleFiles(e.target.files);
     }, false);
 
+    // Previous/Next buttons
     document.getElementById("previous").addEventListener("click", () => {
       if (currentIndex > 0) {
         currentIndex--;
@@ -233,6 +252,7 @@
       }
     });
 
+    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') {
         document.getElementById('previous').click();
@@ -241,6 +261,12 @@
       }
     });
 
+
+    ////////////////////////////////////////
+    // File selection
+    ////////////////////////////////////////
+
+    // Folder selection
     if ('showDirectoryPicker' in window) {
       const folderInput = document.getElementById('folder-input');
       folderInput.style.display = 'inline';
@@ -278,21 +304,21 @@
       handleFiles(e.dataTransfer.files);
     }
 
-    //File Handling API, see https://web.dev/file-handling/
+    // File Handling API
     if ('launchQueue' in window && 'files' in LaunchParams.prototype) {
       launchQueue.setConsumer(async (launchParams) => {
-        // Nothing to do when the queue is empty.
         if (!launchParams.files.length) {
           return;
         }
         console.log("File(s) to Handle (File Handling API)");
-
-        // Resolve FileSystemFileHandle array to File array
         const files = await Promise.all(launchParams.files.map( (fileHandle) => {return fileHandle.getFile();} ));
         handleFiles(files);
       });
     }
 
+    ////////////////////////////////////////
+    // Service Worker
+    ////////////////////////////////////////
 
     navigator.serviceWorker.register('sw.js')
     navigator.serviceWorker.addEventListener('message', event => {
@@ -301,9 +327,13 @@
       }
     });
 
+    ////////////////////////////////////////
+    // Initialization
+    ////////////////////////////////////////
+
     updateButtonStates();
+
   </script>
 
 </body>
-
 </html>
