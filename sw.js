@@ -1,13 +1,11 @@
-const cacheVersion = 'v21';
+const cacheVersion = 'v22';
 const cacheName = 'stereo-viewer-' + cacheVersion;
-
-const cdnPrefix = 'https://cdn.skypack.dev/';
 
 const urlsToCache = [
   "/",
   "/icons/icon.svg",
   "https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js",
-  cdnPrefix + "stereo-img@1.5.0",
+  "https://stereo-img.steren.fr/stereo-img.js",
 ];
 
 // On install, cache critical offline resources.
