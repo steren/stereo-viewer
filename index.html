@@ -59,6 +59,10 @@
       z-index: -1;
     }
 
+    #ui {
+      visibility: hidden;
+    }
+
     #zero-state {
       display: flex;
 	    align-items: center;
@@ -77,33 +81,47 @@
 
   <div id="zero-state">
     <p id="hint">Drag and drop or select a stereo picture</p>
-    <input id="file-input" type="file" accept="image/*">  
+    <input id="file-input" type="file" accept="image/*" multiple>  
   </div>
 
   <!-- TODO: Display UI on top of viewer without blocking viewer interactions-->
   <div id="ui">
     <!-- TODO: Add radio button for type -->
-    <!-- TODO: handle navigation in a list of files -->
-    <!-- <button id="previous">Previous</button> <button id="next">Next</button> -->
+    <button id="previous">Previous</button> <button id="next">Next</button>
   </div>
 
   <script>
+    let allFiles = [];
+    let currentIndex = 0;
+
     function hideZeroState() {
       document.getElementById('zero-state').style.display = 'none';
     }
 
-    // Add selected files to dropdown
     function handleFiles(files) {
       console.log("Handling files:", files);
+      allFiles = [];
       for (let i = 0; i < files.length; i++) {
         let file = files[i];
-        
-        if (!file.type.startsWith('image/')){ continue }
-        
-        let reader = new FileReader();
-        reader.onload = e => { processFile(e.target.result, file.name); };
-        reader.readAsDataURL(file);
+        if (file.type.startsWith('image/')){
+          allFiles.push(file);
+        }
       }
+
+      if (allFiles.length > 0) {
+        currentIndex = 0;
+        displayFile(allFiles[currentIndex]);
+      } else {
+        document.querySelector('stereo-img').src = '';
+        document.getElementById('zero-state').style.display = 'flex';
+      }
+      updateButtonStates();
+    }
+
+    function displayFile(file) {
+      let reader = new FileReader();
+      reader.onload = e => { processFile(e.target.result, file.name); };
+      reader.readAsDataURL(file);
     }
 
     function processFile(url, name) {
@@ -114,9 +132,37 @@
       hideZeroState();
     }
 
+    function updateButtonStates() {
+      if (allFiles.length === 0) {
+        document.getElementById('ui').style.visibility = 'hidden';
+        document.getElementById('previous').disabled = true;
+        document.getElementById('next').disabled = true;
+        return;
+      }
+      document.getElementById('ui').style.visibility = 'visible';
+      document.getElementById('previous').disabled = currentIndex === 0;
+      document.getElementById('next').disabled = currentIndex === allFiles.length - 1;
+    }
+
     document.getElementById("file-input").addEventListener("change", (e) => {
       handleFiles(e.target.files);
     }, false);
+
+    document.getElementById("previous").addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        displayFile(allFiles[currentIndex]);
+        updateButtonStates();
+      }
+    });
+
+    document.getElementById("next").addEventListener("click", () => {
+      if (currentIndex < allFiles.length - 1) {
+        currentIndex++;
+        displayFile(allFiles[currentIndex]);
+        updateButtonStates();
+      }
+    });
 
     // Drag and drop
     const dropzone = document.getElementById("dropbox");
@@ -153,6 +199,8 @@
         handleFiles(event.files);
       }
     });
+
+    updateButtonStates();
   </script>
 
 </body>
