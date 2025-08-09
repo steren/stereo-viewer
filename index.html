@@ -151,6 +151,7 @@
       <label for="type-select">Type:</label>
       <select id="type-select">
         <option value="auto" selected>Auto</option>
+        <option value="pair">Pair</option>
         <option value="vr">VR180</option>
         <option value="left-right">Left-Right</option>
         <option value="right-left">Right-Left</option>
@@ -174,13 +175,83 @@
     // File Handling & Processing
     ////////////////////////////////////////
 
+    /**
+     * Processes the files selected by the user.
+     * It identifies stereo pairs based on common naming conventions and is case-insensitive to the extension.
+     * For example: `image.left.jpg` and `image.right.jpg`, or `photo_L.png` and `photo_R.png`.
+     * It then populates `allFiles` with either single file objects or pair objects.
+     * @param {FileList} files The files to process.
+     */
     function handleFiles(files) {
       console.log("Handling files:", files);
       allFiles = [];
-      for (let i = 0; i < files.length; i++) {
-        let file = files[i];
-        if (file.type.startsWith('image/')){
-          allFiles.push(file);
+      const fileMap = new Map();
+
+      // Segregate files into pairs and single images
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+
+        const fileName = file.name;
+        const dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex === -1) {
+            allFiles.push(file);
+            continue;
+        }
+
+        const nameWithoutExt = fileName.substring(0, dotIndex);
+
+        let baseName = null;
+        let side = null;
+
+        const leftSuffixes = ['.left', '_left', '-left', '.l', '_l', '-l'];
+        const rightSuffixes = ['.right', '_right', '-right', '.r', '_r', '-r'];
+
+        for (const suffix of leftSuffixes) {
+            if (nameWithoutExt.toLowerCase().endsWith(suffix)) {
+                baseName = nameWithoutExt.substring(0, nameWithoutExt.length - suffix.length);
+                side = 'left';
+                break;
+            }
+        }
+
+        if (!baseName) {
+            for (const suffix of rightSuffixes) {
+                if (nameWithoutExt.toLowerCase().endsWith(suffix)) {
+                    baseName = nameWithoutExt.substring(0, nameWithoutExt.length - suffix.length);
+                    side = 'right';
+                    break;
+                }
+            }
+        }
+
+        if (baseName && side) {
+            if (!fileMap.has(baseName)) {
+                fileMap.set(baseName, {});
+            }
+            const pair = fileMap.get(baseName);
+            if (side === 'left') {
+                pair.left = file;
+            } else {
+                pair.right = file;
+            }
+        } else {
+            allFiles.push(file);
+        }
+      }
+
+      // Add completed pairs to the list of files to display
+      for (const [baseName, pair] of fileMap.entries()) {
+        if (pair.left && pair.right) {
+          allFiles.push({
+            isPair: true,
+            name: baseName,
+            left: pair.left,
+            right: pair.right
+          });
+        } else if (pair.left) {
+          allFiles.push(pair.left);
+        } else if (pair.right) {
+          allFiles.push(pair.right);
         }
       }
 
@@ -196,16 +267,70 @@
       updateButtonStates();
     }
 
-    function displayFile(file) {
-      let reader = new FileReader();
-      reader.onload = e => { processFile(e.target.result, file.name); };
-      reader.readAsDataURL(file);
+    /**
+     * Displays a file or a pair of files in the stereo-img component.
+     * @param {File|object} fileOrPair The file or pair object to display.
+     */
+    function displayFile(fileOrPair) {
+      // If it's a pair, read both files and process them together.
+      if (fileOrPair.isPair) {
+        const readerLeft = new FileReader();
+        const readerRight = new FileReader();
+        let leftUrl, rightUrl;
+
+        readerLeft.onload = e => {
+          leftUrl = e.target.result;
+          if (rightUrl) {
+            displayPair(leftUrl, rightUrl, fileOrPair.name);
+          }
+        };
+
+        readerRight.onload = e => {
+          rightUrl = e.target.result;
+          if (leftUrl) {
+            displayPair(leftUrl, rightUrl, fileOrPair.name);
+          }
+        };
+
+        readerLeft.readAsDataURL(fileOrPair.left);
+        readerRight.readAsDataURL(fileOrPair.right);
+      } else {
+        // If it's a single file, read and process it.
+        let reader = new FileReader();
+        reader.onload = e => { displaySingleFile(e.target.result, fileOrPair.name); };
+        reader.readAsDataURL(fileOrPair);
+      }
     }
 
-    function processFile(url, name) {
-      console.log("Processing file:", name);
+    /**
+     * Configures the stereo-img component to display a pair of images.
+     * @param {string} leftUrl The data URL for the left image.
+     * @param {string} rightUrl The data URL for the right image.
+     * @param {string} fileName The base name of the image pair.
+     */
+    function displayPair(leftUrl, rightUrl, fileName) {
+      console.log("Processing pair:", fileName);
       const stereoImg = document.querySelector('stereo-img');
+      stereoImg.setAttribute('type', 'pair');
+      stereoImg.setAttribute('src-right', rightUrl);
+      stereoImg.src = leftUrl;
+      document.getElementById('type-select').value = 'pair';
+      hideZeroState();
+    }
+
+    /**
+     * Configures the stereo-img component to display a single image.
+     * @param {string} url The data URL for the image.
+     * @param {string} fileName The name of the file.
+     */
+    function displaySingleFile(url, fileName) {
+      console.log("Processing file:", fileName);
+      const stereoImg = document.querySelector('stereo-img');
+      // Reset attributes to default for a single image
+      stereoImg.removeAttribute('type');
+      stereoImg.removeAttribute('src-right');
       stereoImg.src = url;
+      document.getElementById('type-select').value = 'auto';
       hideZeroState();
     }
 
@@ -233,11 +358,14 @@
       document.getElementById('next').disabled = currentIndex === allFiles.length - 1;
     }
 
+    /**
+     * Generates thumbnails for all loaded files and pairs.
+     */
     function generateThumbnails() {
       const thumbnailsContainer = document.getElementById('thumbnails');
       thumbnailsContainer.innerHTML = '';
 
-      allFiles.forEach((file, index) => {
+      allFiles.forEach((fileOrPair, index) => {
         const img = document.createElement('img');
         img.addEventListener('click', () => {
           currentIndex = index;
@@ -250,7 +378,13 @@
         reader.onload = e => {
           img.src = e.target.result;
         };
-        reader.readAsDataURL(file);
+        
+        // For pairs, use the left image for the thumbnail.
+        if (fileOrPair.isPair) {
+          reader.readAsDataURL(fileOrPair.left);
+        } else {
+          reader.readAsDataURL(fileOrPair);
+        }
       });
       updateActiveThumbnail();
     }
