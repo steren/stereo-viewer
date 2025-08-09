@@ -135,7 +135,7 @@
   <div id="zero-state">
     <img id="zero-state-icon" src="icons/icon-transparent.svg" alt="Stereo Viewer Icon" width="200" height="200">
     <p id="hint">Drag and drop or <label for="file-input">select stereo pictures</label></p>
-    <input id="file-input" type="file" accept="image/*" multiple class="visually-hidden">
+    <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden">
     <span id="folder-selection-ui" style="display: none;">
       or <button id="folder-input">Select Folder</button>
     </span>
@@ -189,7 +189,7 @@
 
       // Segregate files into pairs and single images
       for (const file of files) {
-        if (!file.type.startsWith('image/')) continue;
+        if (!file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.svg')) continue;
 
         const fileName = file.name;
         const dotIndex = fileName.lastIndexOf('.');
@@ -470,7 +470,7 @@
           for await (const entry of dirHandle.values()) {
             if (entry.kind === 'file') {
               const file = await entry.getFile();
-              if (file.type.startsWith('image/')) {
+              if (file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
                 files.push(file);
               }
             }
