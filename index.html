@@ -463,18 +463,27 @@
     if ('showDirectoryPicker' in window) {
       document.getElementById('folder-selection-ui').style.display = 'inline';
       const folderInput = document.getElementById('folder-input');
+
+      async function getFilesFromDirectory(dirHandle) {
+        const files = [];
+        for await (const entry of dirHandle.values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            if (file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
+              files.push(file);
+            }
+          } else if (entry.kind === 'directory') {
+            const subFiles = await getFilesFromDirectory(entry);
+            files.push(...subFiles);
+          }
+        }
+        return files;
+      }
+
       folderInput.addEventListener('click', async () => {
         try {
           const dirHandle = await window.showDirectoryPicker();
-          const files = [];
-          for await (const entry of dirHandle.values()) {
-            if (entry.kind === 'file') {
-              const file = await entry.getFile();
-              if (file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
-                files.push(file);
-              }
-            }
-          }
+          const files = await getFilesFromDirectory(dirHandle);
           handleFiles(files);
         } catch (e) {
           if (e.name !== 'AbortError') {
