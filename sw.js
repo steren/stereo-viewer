@@ -37,29 +37,38 @@ self.addEventListener('activate', (event) => {
 });
 
 
-self.addEventListener('fetch', async (event) => {
+// Files received from a Share action, waiting to be picked up by the page.
+let sharedFiles = null;
+
+// The page tells us when it is ready to receive the shared files.
+self.addEventListener('message', (event) => {
+  if (event.data === 'share-ready' && sharedFiles) {
+    const files = sharedFiles;
+    sharedFiles = null;
+    event.waitUntil(files.then((files) => {
+      console.log('Sending files from Share action:', files);
+      event.source.postMessage({ files });
+    }));
+  }
+});
+
+self.addEventListener('fetch', (event) => {
   if (event.request.method === 'POST') {
-    // Share actions send a POST requests, intercept it and redirect to / 
-    event.respondWith((async () => {
-      const formData = await event.request.formData();
-      const files = formData.getAll('files');
-      console.log('Received files from Share action:', files);
-
-      const allWindowsClients = await clients.matchAll();
-
-      if(allWindowsClients.length > 0) {
-        console.log("Found clients to send files");
-        for (const client of allWindowsClients) {
-          client.postMessage({
-            files: files
-          });
+    // Share actions send a POST request: keep its files and redirect to /?shared.
+    // The page loaded by this redirect does not exist yet, so we cannot send it the files now:
+    // it asks for them with a 'share-ready' message once loaded.
+    sharedFiles = event.request.formData().then((formData) => formData.getAll('files'));
+    event.respondWith(Response.redirect('/?shared', 303));
+    // Stay alive until the page has asked for the files (or give up after 30s).
+    event.waitUntil(new Promise((resolve) => {
+      const start = Date.now();
+      const interval = setInterval(() => {
+        if (!sharedFiles || Date.now() - start > 30000) {
+          clearInterval(interval);
+          resolve();
         }
-      } else {
-        console.error('No clients found to send files to');
-      }
-      
-      return Response.redirect('/', 303);
-    })());
+      }, 500);
+    }));
   } else {
     // Look for the request in the cache
     // If the request is in the cache, return it
