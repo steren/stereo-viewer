@@ -1,12 +1,41 @@
-const cacheVersion = 'v23';
+const cacheVersion = 'v24';
 const cacheName = 'stereo-viewer-' + cacheVersion;
+
+const stereoImgUrl = "https://stereo-img.steren.fr/stereo-img.js";
 
 const urlsToCache = [
   "/",
   "/icons/icon.svg",
-  "https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js",
-  "https://stereo-img.steren.fr/stereo-img.js",
+  "/icons/icon-transparent.svg",
+  "https://cdn.jsdelivr.net/npm/webxr-polyfill@2.0.3/build/webxr-polyfill.js",
 ];
+
+// Origins (other than our own) whose responses are cached for offline use.
+const cachedOrigins = [
+  new URL(stereoImgUrl).origin,
+  "https://cdn.jsdelivr.net",
+];
+
+/**
+ * Caches a JavaScript module and, recursively, every module it imports with a relative specifier.
+ * <stereo-img> is made of many modules (three.js, exifr, parsers loaded on demand...):
+ * they all need to be in the cache for the app to work offline.
+ * This is best effort: a module that cannot be fetched is skipped.
+ */
+async function cacheModuleGraph(cache, url, seen = new Set()) {
+  if (seen.has(url)) return;
+  seen.add(url);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return;
+    await cache.put(url, response.clone());
+    const source = await response.text();
+    const imports = source.matchAll(/(?:\bfrom|\bimport)\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g);
+    await Promise.all([...imports].map((match) => cacheModuleGraph(cache, new URL(match[1], url).href, seen)));
+  } catch (e) {
+    console.warn(`Could not cache ${url}`, e);
+  }
+}
 
 // On install, cache critical offline resources.
 self.addEventListener('install', (event) => {
@@ -14,8 +43,13 @@ self.addEventListener('install', (event) => {
     caches.open(cacheName)
       .then((cache) => {
         console.log('Caching URLs');
-        return cache.addAll(urlsToCache);
+        return Promise.all([
+          cache.addAll(urlsToCache),
+          cacheModuleGraph(cache, stereoImgUrl),
+        ]);
       })
+      // Replace any previous version right away: v23 and older fail to load the app.
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -32,7 +66,7 @@ self.addEventListener('activate', (event) => {
             return caches.delete(name);
           })
       );
-    }),
+    }).then(() => self.clients.claim()),
   );
 });
 
@@ -61,21 +95,31 @@ self.addEventListener('fetch', async (event) => {
       return Response.redirect('/', 303);
     })());
   } else {
-    // Look for the request in the cache
-    // If the request is in the cache, return it
-    // Otherwise, fetch from the network and if .js file from CDN, store in cache
+    // Network first: always serve the latest version when online,
+    // and keep a copy in the cache to fall back to when offline.
+    const url = new URL(event.request.url);
+    if (event.request.method !== 'GET' || (url.origin !== self.location.origin && !cachedOrigins.includes(url.origin))) {
+      // Not ours to handle, let the browser do its thing.
+      return;
+    }
+
     event.respondWith(
-      caches.open(cacheName).then((cache) => {
-        return cache.match(event.request).then((response) => {
-          return response || fetch(event.request).then((response) => {
-            console.log(`Fetching from network: ${event.request.url}`);
-            if (event.request.url.endsWith('.js') && event.request.url.startsWith(cdnPrefix)) { 
-              console.log(`Caching ${event.request.url}`);
-              cache.put(event.request, response.clone());
-            }
-            return response;
-          });
-        });
+      caches.open(cacheName).then(async (cache) => {
+        try {
+          const response = await fetch(event.request);
+          if (response.status === 200) {
+            event.waitUntil(cache.put(event.request, response.clone()));
+          }
+          return response;
+        } catch (e) {
+          const cached = await cache.match(event.request)
+            // The app shell is cached as "/", whatever the query string
+            || (event.request.mode === 'navigate' && await cache.match('/'));
+          if (cached) {
+            return cached;
+          }
+          throw e;
+        }
       })
     )
   }
