@@ -169,6 +169,7 @@
 
     let allFiles = [];
     let currentIndex = 0;
+    let thumbnailUrls = [];
 
 
     ////////////////////////////////////////
@@ -267,38 +268,38 @@
       updateButtonStates();
     }
 
+    // Incremented each time an image is requested, to ignore files that finish loading too late.
+    let displayRequest = 0;
+
+    /**
+     * @param {File} file
+     * @returns {Promise<string>} The content of the file as a data URL.
+     */
+    function readAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
     /**
      * Displays a file or a pair of files in the stereo-img component.
      * @param {File|object} fileOrPair The file or pair object to display.
      */
-    function displayFile(fileOrPair) {
-      // If it's a pair, read both files and process them together.
+    async function displayFile(fileOrPair) {
+      const request = ++displayRequest;
+      const files = fileOrPair.isPair ? [fileOrPair.left, fileOrPair.right] : [fileOrPair];
+      const urls = await Promise.all(files.map(readAsDataURL));
+
+      // Reading files takes time: if another image was requested in the meantime, do not display this one.
+      if (request !== displayRequest) return;
+
       if (fileOrPair.isPair) {
-        const readerLeft = new FileReader();
-        const readerRight = new FileReader();
-        let leftUrl, rightUrl;
-
-        readerLeft.onload = e => {
-          leftUrl = e.target.result;
-          if (rightUrl) {
-            displayPair(leftUrl, rightUrl, fileOrPair.name);
-          }
-        };
-
-        readerRight.onload = e => {
-          rightUrl = e.target.result;
-          if (leftUrl) {
-            displayPair(leftUrl, rightUrl, fileOrPair.name);
-          }
-        };
-
-        readerLeft.readAsDataURL(fileOrPair.left);
-        readerRight.readAsDataURL(fileOrPair.right);
+        displayPair(urls[0], urls[1], fileOrPair.name);
       } else {
-        // If it's a single file, read and process it.
-        let reader = new FileReader();
-        reader.onload = e => { displaySingleFile(e.target.result, fileOrPair.name); };
-        reader.readAsDataURL(fileOrPair);
+        displaySingleFile(urls[0], fileOrPair.name);
       }
     }
 
@@ -363,28 +364,27 @@
      */
     function generateThumbnails() {
       const thumbnailsContainer = document.getElementById('thumbnails');
-      thumbnailsContainer.innerHTML = '';
+      clearThumbnails();
 
       allFiles.forEach((fileOrPair, index) => {
         const img = document.createElement('img');
+        // Only decode the thumbnails that are scrolled into view
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.alt = fileOrPair.name;
         img.addEventListener('click', () => {
           currentIndex = index;
           displayFile(allFiles[currentIndex]);
+          updateButtonStates();
           updateActiveThumbnail();
         });
-        thumbnailsContainer.appendChild(img);
 
-        const reader = new FileReader();
-        reader.onload = e => {
-          img.src = e.target.result;
-        };
-        
+        // Use an object URL: unlike a data URL, it does not load the whole file in memory.
         // For pairs, use the left image for the thumbnail.
-        if (fileOrPair.isPair) {
-          reader.readAsDataURL(fileOrPair.left);
-        } else {
-          reader.readAsDataURL(fileOrPair);
-        }
+        const url = URL.createObjectURL(fileOrPair.isPair ? fileOrPair.left : fileOrPair);
+        thumbnailUrls.push(url);
+        img.src = url;
+        thumbnailsContainer.appendChild(img);
       });
       updateActiveThumbnail();
     }
@@ -392,6 +392,8 @@
     function clearThumbnails() {
       const thumbnailsContainer = document.getElementById('thumbnails');
       thumbnailsContainer.innerHTML = '';
+      thumbnailUrls.forEach(url => URL.revokeObjectURL(url));
+      thumbnailUrls = [];
     }
 
     function updateActiveThumbnail() {
