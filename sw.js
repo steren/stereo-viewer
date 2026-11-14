@@ -1,9 +1,10 @@
-const cacheVersion = 'v23';
+const cacheVersion = 'v24';
 const cacheName = 'stereo-viewer-' + cacheVersion;
 
 const urlsToCache = [
   "/",
   "/icons/icon.svg",
+  "/icons/icon-transparent.svg",
   "https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js",
   "https://stereo-img.steren.fr/stereo-img.js",
 ];
@@ -72,13 +73,13 @@ self.addEventListener('fetch', (event) => {
   } else {
     // Look for the request in the cache
     // If the request is in the cache, return it
-    // Otherwise, fetch from the network and if .js file from CDN, store in cache
+    // Otherwise, fetch from the network and if .js file, store in cache
     event.respondWith(
       caches.open(cacheName).then((cache) => {
         return cache.match(event.request).then((response) => {
           return response || fetch(event.request).then((response) => {
             console.log(`Fetching from network: ${event.request.url}`);
-            if (event.request.url.endsWith('.js') && event.request.url.startsWith(cdnPrefix)) { 
+            if (response.ok && event.request.url.endsWith('.js')) {
               console.log(`Caching ${event.request.url}`);
               cache.put(event.request, response.clone());
             }
