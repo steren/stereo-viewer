@@ -135,7 +135,7 @@
   <div id="zero-state">
     <img id="zero-state-icon" src="icons/icon-transparent.svg" alt="Stereo Viewer Icon" width="200" height="200">
     <p id="hint">Drag and drop or <label for="file-input">select stereo pictures</label></p>
-    <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden">
+    <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp,.jps,.mpo" multiple class="visually-hidden">
     <span id="folder-selection-ui" style="display: none;">
       or <button id="folder-input">Select Folder</button>
     </span>
@@ -175,85 +175,96 @@
     // File Handling & Processing
     ////////////////////////////////////////
 
+    // Image extensions to accept even when the browser does not know their type (e.g. .jps, .mpo).
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.jps', '.mpo'];
+
+    // Suffixes (before the extension) identifying the left and right images of a stereo pair.
+    const pairSuffixes = {
+      left: ['.left', '_left', '-left', '.l', '_l', '-l'],
+      right: ['.right', '_right', '-right', '.r', '_r', '-r'],
+    };
+
+    // Path of the files relative to the folder selected by the user (File -> "subfolder/name.jpg").
+    const relativePaths = new WeakMap();
+
+    /**
+     * @param {File} file
+     * @returns {boolean} true if the file is an image the viewer can display.
+     */
+    function isImageFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.svg')) return false;
+      return file.type.startsWith('image/') || imageExtensions.some(extension => name.endsWith(extension));
+    }
+
+    /**
+     * @param {File} file
+     * @returns {string} the path of the file, including its folder when known.
+     */
+    function getPath(file) {
+      return relativePaths.get(file) || file.webkitRelativePath || file.name;
+    }
+
     /**
      * Processes the files selected by the user.
-     * It identifies stereo pairs based on common naming conventions and is case-insensitive to the extension.
+     * It identifies stereo pairs based on common naming conventions and is case-insensitive to the suffix.
      * For example: `image.left.jpg` and `image.right.jpg`, or `photo_L.png` and `photo_R.png`.
-     * It then populates `allFiles` with either single file objects or pair objects.
-     * @param {FileList} files The files to process.
+     * The two images of a pair must be in the same folder.
+     * It then populates `allFiles` with either single file objects or pair objects, sorted by path.
+     * @param {FileList|File[]} files The files to process.
      */
     function handleFiles(files) {
       console.log("Handling files:", files);
-      allFiles = [];
-      const fileMap = new Map();
+      const items = [];
+      const pairs = new Map();
 
-      // Segregate files into pairs and single images
       for (const file of files) {
-        if (!file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.svg')) continue;
+        if (!isImageFile(file)) continue;
 
-        const fileName = file.name;
-        const dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex === -1) {
-            allFiles.push(file);
-            continue;
-        }
+        const path = getPath(file);
+        const folder = path.substring(0, path.length - file.name.length);
+        const dotIndex = file.name.lastIndexOf('.');
+        const nameWithoutExt = dotIndex === -1 ? file.name : file.name.substring(0, dotIndex);
 
-        const nameWithoutExt = fileName.substring(0, dotIndex);
-
-        let baseName = null;
+        let baseName = '';
         let side = null;
-
-        const leftSuffixes = ['.left', '_left', '-left', '.l', '_l', '-l'];
-        const rightSuffixes = ['.right', '_right', '-right', '.r', '_r', '-r'];
-
-        for (const suffix of leftSuffixes) {
-            if (nameWithoutExt.toLowerCase().endsWith(suffix)) {
-                baseName = nameWithoutExt.substring(0, nameWithoutExt.length - suffix.length);
-                side = 'left';
-                break;
-            }
+        for (const [candidateSide, suffixes] of Object.entries(pairSuffixes)) {
+          const suffix = suffixes.find(suffix => nameWithoutExt.toLowerCase().endsWith(suffix));
+          if (suffix) {
+            baseName = nameWithoutExt.substring(0, nameWithoutExt.length - suffix.length);
+            side = candidateSide;
+            break;
+          }
         }
 
         if (!baseName) {
-            for (const suffix of rightSuffixes) {
-                if (nameWithoutExt.toLowerCase().endsWith(suffix)) {
-                    baseName = nameWithoutExt.substring(0, nameWithoutExt.length - suffix.length);
-                    side = 'right';
-                    break;
-                }
-            }
+          // Not part of a pair
+          items.push(file);
+          continue;
         }
 
-        if (baseName && side) {
-            if (!fileMap.has(baseName)) {
-                fileMap.set(baseName, {});
-            }
-            const pair = fileMap.get(baseName);
-            if (side === 'left') {
-                pair.left = file;
-            } else {
-                pair.right = file;
-            }
+        // Pairs are identified by folder and base name: the same name in another folder is another pair.
+        const key = folder + baseName;
+        if (!pairs.has(key)) {
+          const pair = { isPair: true, name: baseName };
+          pairs.set(key, pair);
+          items.push(pair);
+        }
+        const pair = pairs.get(key);
+        if (pair[side]) {
+          // This side of the pair is already taken (e.g. `a_L.jpg` and `a_L.png`): do not drop the file.
+          items.push(file);
         } else {
-            allFiles.push(file);
+          pair[side] = file;
         }
       }
 
-      // Add completed pairs to the list of files to display
-      for (const [baseName, pair] of fileMap.entries()) {
-        if (pair.left && pair.right) {
-          allFiles.push({
-            isPair: true,
-            name: baseName,
-            left: pair.left,
-            right: pair.right
-          });
-        } else if (pair.left) {
-          allFiles.push(pair.left);
-        } else if (pair.right) {
-          allFiles.push(pair.right);
-        }
-      }
+      // Incomplete pairs are displayed as single images
+      allFiles = items.map(item => (item.isPair && !(item.left && item.right)) ? (item.left || item.right) : item);
+
+      // Sort by path, in natural order ("2.jpg" before "10.jpg"). Pairs are sorted using their left image.
+      const sortKey = item => getPath(item.isPair ? item.left : item);
+      allFiles.sort((a, b) => sortKey(a).localeCompare(sortKey(b), undefined, { numeric: true, sensitivity: 'base' }));
 
       if (allFiles.length > 0) {
         currentIndex = 0;
@@ -464,16 +475,17 @@
       document.getElementById('folder-selection-ui').style.display = 'inline';
       const folderInput = document.getElementById('folder-input');
 
-      async function getFilesFromDirectory(dirHandle) {
+      async function getFilesFromDirectory(dirHandle, path = '') {
         const files = [];
         for await (const entry of dirHandle.values()) {
           if (entry.kind === 'file') {
             const file = await entry.getFile();
-            if (file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
+            if (isImageFile(file)) {
+              relativePaths.set(file, path + file.name);
               files.push(file);
             }
           } else if (entry.kind === 'directory') {
-            const subFiles = await getFilesFromDirectory(entry);
+            const subFiles = await getFilesFromDirectory(entry, path + entry.name + '/');
             files.push(...subFiles);
           }
         }

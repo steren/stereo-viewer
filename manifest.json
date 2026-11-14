@@ -54,7 +54,9 @@
   "file_handlers": [{
     "action": "/",
     "accept": {
-      "image/jpeg": ".jpg"
+      "image/jpeg": [".jpg", ".jpeg", ".jps", ".mpo"],
+      "image/png": [".png"],
+      "image/webp": [".webp"]
     },
     "icons": [
       {
@@ -62,7 +64,9 @@
         "sizes": "512x512",
         "type": "image/png"
       }
-    ],
-    "launch_type": "single-client"
-  }]
+    ]
+  }],
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  }
 }
