@@ -522,12 +522,24 @@
     // Service Worker
     ////////////////////////////////////////
 
-    navigator.serviceWorker.register('sw.js')
-    navigator.serviceWorker.addEventListener('message', event => {
-      if(event.files) {
-        handleFiles(event.files);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+
+      // Files shared to the app (Share Target) are received by the Service Worker, which sends them here.
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.files) {
+          handleFiles(event.data.files);
+        }
+      });
+
+      // The Service Worker redirects Share actions to /?shared: ask it for the shared files.
+      if (new URLSearchParams(location.search).has('shared')) {
+        history.replaceState(null, '', location.pathname);
+        navigator.serviceWorker.ready.then(registration => {
+          (navigator.serviceWorker.controller || registration.active).postMessage('share-ready');
+        });
       }
-    });
+    }
 
     ////////////////////////////////////////
     // Initialization

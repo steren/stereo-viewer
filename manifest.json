@@ -46,7 +46,7 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/jpeg"]
+          "accept": ["image/jpeg", "image/png", "image/webp"]
         }
       ]
     }
