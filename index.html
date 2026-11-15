@@ -181,7 +181,15 @@
         <option value="right-left">Right-Left</option>
         <option value="top-bottom">Top-Bottom</option>
         <option value="bottom-top">Bottom-Top</option>
+        <option value="interlaced">Interlaced rows</option>
+        <option value="interlaced-reverse">Interlaced rows (reversed)</option>
+        <option value="column-interlaced">Interlaced columns</option>
+        <option value="column-interlaced-reverse">Interlaced columns (reversed)</option>
         <option value="anaglyph">Anaglyph</option>
+        <option value="mpo">MPO</option>
+        <option value="lif">Leia (LIF)</option>
+        <option value="depth">Depth map</option>
+        <option value="mono">Mono (2D)</option>
       </select>
     </div>
     <button id="open-files" title="Open other pictures">Open&hellip;</button>
@@ -364,10 +372,16 @@
       console.log("Processing file:", fileName);
       const stereoImg = document.querySelector('stereo-img');
       // Reset attributes to default for a single image
-      stereoImg.removeAttribute('type');
       stereoImg.removeAttribute('src-right');
+      // stereo-img detects MPO files by their name, which the data URL does not have.
+      if (fileName.toLowerCase().endsWith('.mpo')) {
+        stereoImg.setAttribute('type', 'mpo');
+        document.getElementById('type-select').value = 'mpo';
+      } else {
+        stereoImg.removeAttribute('type');
+        document.getElementById('type-select').value = 'auto';
+      }
       stereoImg.src = url;
-      document.getElementById('type-select').value = 'auto';
       hideZeroState();
     }
 
@@ -408,12 +422,7 @@
         img.loading = 'lazy';
         img.decoding = 'async';
         img.alt = fileOrPair.name;
-        img.addEventListener('click', () => {
-          currentIndex = index;
-          displayFile(allFiles[currentIndex]);
-          updateButtonStates();
-          updateActiveThumbnail();
-        });
+        img.addEventListener('click', () => show(index));
 
         // Use an object URL: unlike a data URL, it does not load the whole file in memory.
         // For pairs, use the left image for the thumbnail.
@@ -459,23 +468,30 @@
       document.getElementById("file-input").click();
     });
 
-    // Previous/Next buttons
-    document.getElementById("previous").addEventListener("click", () => {
-      if (currentIndex > 0) {
-        currentIndex--;
-        displayFile(allFiles[currentIndex]);
-        updateButtonStates();
-        updateActiveThumbnail();
-      }
-    });
+    /**
+     * Displays the picture at the given index of the gallery.
+     * @param {number} index
+     */
+    function show(index) {
+      if (index < 0 || index >= allFiles.length || index === currentIndex) return;
+      currentIndex = index;
+      displayFile(allFiles[currentIndex]);
+      updateButtonStates();
+      updateActiveThumbnail();
+    }
 
-    document.getElementById("next").addEventListener("click", () => {
-      if (currentIndex < allFiles.length - 1) {
-        currentIndex++;
-        displayFile(allFiles[currentIndex]);
-        updateButtonStates();
-        updateActiveThumbnail();
-      }
+    // Previous/Next buttons
+    document.getElementById("previous").addEventListener("click", () => show(currentIndex - 1));
+    document.getElementById("next").addEventListener("click", () => show(currentIndex + 1));
+
+    // In VR, stereo-img asks for the previous or next picture (controller triggers, hand pinches,
+    // thumbsticks, Cardboard button). There are no buttons to see the ends of the gallery: wrap around.
+    const stereoImgElement = document.querySelector('stereo-img');
+    stereoImgElement.addEventListener('next', () => {
+      if (allFiles.length > 1) show((currentIndex + 1) % allFiles.length);
+    });
+    stereoImgElement.addEventListener('previous', () => {
+      if (allFiles.length > 1) show((currentIndex - 1 + allFiles.length) % allFiles.length);
     });
 
     // Keyboard navigation
